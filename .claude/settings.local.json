@@ -1,0 +1,19 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m tests.test_pdf_parser)",
+      "Bash(pip3 list:*)",
+      "Bash(pip3 install:*)",
+      "Bash(python3)",
+      "Read(//Users/shirinchakder/.claude/projects/**)",
+      "Bash(python3 -c \"import tiktoken; print\\('ok'\\)\")",
+      "Bash(python3 -m tests.test_chunker)",
+      "Bash(python3 -c \"import chromadb; print\\('chromadb ok'\\)\")",
+      "Bash(python3 -c \"from rank_bm25 import BM25Okapi; print\\('rank-bm25 ok'\\)\")",
+      "Read(//Users/shirinchakder/.claude/plans/**)"
+    ],
+    "additionalDirectories": [
+      "/Users/shirinchakder/.claude/projects/-Users-shirinchakder-Desktop-RAGPROJECT"
+    ]
+  }
+}

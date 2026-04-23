@@ -1,0 +1,9 @@
+{
+  "status": "complete",
+  "pdf_hash": "78e225f1a9aadf5e72ee99ee8ba35a5b87942627b7143353ccd3e5d67b03af5f",
+  "chunking_version": "c324e6636666d55d",
+  "embedded_chunk_count": 1123,
+  "bm25_chunk_count": 1123,
+  "last_embedded_chunk_id": "e4d2544a27062de8",
+  "bm25_built": true
+}
