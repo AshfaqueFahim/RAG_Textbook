@@ -1,0 +1,19 @@
+# Large source data — store locally, not in git
+data/raw/textbook.pdf
+data/raw/*.pdf
+
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.env
+venv/
+.venv/
+
+# Vector store / generated data
+data/processed/
+store/*.db
+store/*.index
+
+# OS
+.DS_Store
