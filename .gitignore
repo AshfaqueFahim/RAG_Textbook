@@ -10,10 +10,8 @@ __pycache__/
 venv/
 .venv/
 
-# Vector store / generated data
-data/processed/
-store/*.db
-store/*.index
+# Claude Code config — not project code
+.claude/
 
 # OS
 .DS_Store
