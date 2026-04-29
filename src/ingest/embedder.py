@@ -52,6 +52,7 @@ def run_ingestion(
     state_path: Path = INGESTION_STATE_PATH,
     chroma_manager=None,
     openai_client=None,
+    on_batch=None,
 ) -> None:
     state = load_ingestion_state(state_path)
     resume_id = state.get("last_embedded_chunk_id")
@@ -78,6 +79,8 @@ def run_ingestion(
         state["last_embedded_chunk_id"] = chunk_ids[-1]
         save_ingestion_state(state, state_path)
         batch.clear()
+        if on_batch is not None:
+            on_batch(state["embedded_chunk_count"])
 
     with open(chunks_path, encoding="utf-8") as f:
         if resume_id is None:

@@ -1,0 +1,674 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>US History Q&A</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:         #212121;
+      --surface:    #2f2f2f;
+      --surface-2:  #3a3a3a;
+      --border:     #404040;
+      --text:       #ececec;
+      --text-muted: #8e8ea0;
+      --accent:     #19c37d;
+      --yellow:     #f0b429;
+      --red:        #ef4444;
+      --user-bg:    #2f2f2f;
+      --input-bg:   #2f2f2f;
+    }
+
+    html, body {
+      height: 100%;
+      font-family: 'Inter', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+    }
+
+    /* ── Layout ── */
+    #app {
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      max-width: 800px;
+      margin: 0 auto;
+    }
+
+    /* ── Header ── */
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0.85rem 1.25rem;
+      border-bottom: 1px solid var(--border);
+      flex-shrink: 0;
+    }
+    .header-left { display: flex; align-items: center; gap: 0.6rem; }
+    .header-left h1 { font-size: 0.95rem; font-weight: 600; }
+    .header-left span {
+      font-size: 0.7rem;
+      color: var(--text-muted);
+      background: var(--surface);
+      padding: 0.2rem 0.55rem;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+    }
+    #upload-btn {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      font-weight: 500;
+      color: var(--text-muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      padding: 0.4rem 0.8rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+    }
+    #upload-btn:hover { color: var(--text); border-color: var(--text-muted); }
+
+    /* ── Chat ── */
+    #chat {
+      flex: 1;
+      overflow-y: auto;
+      padding: 1.5rem 1.25rem;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+    #chat::-webkit-scrollbar { width: 6px; }
+    #chat::-webkit-scrollbar-track { background: transparent; }
+    #chat::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
+
+    /* ── Empty state ── */
+    #empty {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      color: var(--text-muted);
+      text-align: center;
+    }
+    #empty h2 { font-size: 1.4rem; font-weight: 600; color: var(--text); }
+    #empty p  { font-size: 0.88rem; max-width: 320px; line-height: 1.6; }
+    .suggestions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      justify-content: center;
+      margin-top: 1rem;
+      max-width: 500px;
+    }
+    .suggestions button {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 0.45rem 0.85rem;
+      cursor: pointer;
+      transition: color 0.15s, border-color 0.15s;
+      text-align: left;
+      line-height: 1.4;
+    }
+    .suggestions button:hover { color: var(--text); border-color: var(--text-muted); }
+
+    /* ── Messages ── */
+    .msg { display: flex; flex-direction: column; gap: 0.4rem; }
+
+    .msg.user { align-items: flex-end; }
+    .msg.user .bubble {
+      background: var(--user-bg);
+      border: 1px solid var(--border);
+      border-radius: 18px 18px 4px 18px;
+      padding: 0.65rem 1rem;
+      max-width: 75%;
+      font-size: 0.92rem;
+      line-height: 1.5;
+    }
+
+    .msg.assistant { align-items: flex-start; }
+    .msg.assistant .bubble {
+      font-size: 0.92rem;
+      line-height: 1.7;
+      max-width: 100%;
+      width: 100%;
+    }
+    .answer-text { color: var(--text); }
+    .answer-text .cite {
+      display: inline-block;
+      background: rgba(25, 195, 125, 0.15);
+      color: var(--accent);
+      border-radius: 3px;
+      padding: 0 3px;
+      font-size: 0.72em;
+      font-weight: 600;
+      vertical-align: super;
+      line-height: 1;
+    }
+
+    /* ── Confidence badge ── */
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+      font-size: 0.7rem;
+      font-weight: 500;
+      margin-top: 0.5rem;
+    }
+    .badge::before {
+      content: '';
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      display: inline-block;
+    }
+    .badge.high   { color: var(--accent);  } .badge.high::before   { background: var(--accent); }
+    .badge.low    { color: var(--yellow); } .badge.low::before    { background: var(--yellow); }
+    .badge.very_low { color: var(--red);  } .badge.very_low::before { background: var(--red); }
+
+    /* ── Sources ── */
+    .sources-toggle {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.3rem;
+      font-size: 0.75rem;
+      color: var(--text-muted);
+      cursor: pointer;
+      margin-top: 0.6rem;
+      background: none;
+      border: none;
+      font-family: inherit;
+      padding: 0;
+    }
+    .sources-toggle:hover { color: var(--text); }
+    .sources-toggle .arrow { transition: transform 0.2s; display: inline-block; }
+    .sources-toggle.open .arrow { transform: rotate(90deg); }
+    .sources-list {
+      display: none;
+      margin-top: 0.5rem;
+      padding: 0.5rem 0.75rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      list-style: none;
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.6;
+    }
+    .sources-list.open { display: block; }
+    .sources-list li { padding: 0.2rem 0; display: flex; gap: 0.5rem; }
+    .src-n { color: var(--accent); font-weight: 600; min-width: 20px; }
+
+    /* ── Thinking indicator ── */
+    .thinking {
+      display: flex;
+      gap: 4px;
+      align-items: center;
+      padding: 0.5rem 0;
+    }
+    .thinking span {
+      width: 7px; height: 7px;
+      background: var(--text-muted);
+      border-radius: 50%;
+      animation: bounce 1.2s infinite;
+    }
+    .thinking span:nth-child(2) { animation-delay: 0.2s; }
+    .thinking span:nth-child(3) { animation-delay: 0.4s; }
+    @keyframes bounce {
+      0%, 60%, 100% { transform: translateY(0); opacity: 0.4; }
+      30% { transform: translateY(-6px); opacity: 1; }
+    }
+
+    /* ── Input bar ── */
+    #input-wrap {
+      padding: 1rem 1.25rem 1.25rem;
+      flex-shrink: 0;
+    }
+    .input-box {
+      display: flex;
+      align-items: flex-end;
+      gap: 0.5rem;
+      background: var(--input-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 0.6rem 0.6rem 0.6rem 1rem;
+      transition: border-color 0.15s;
+    }
+    .input-box:focus-within { border-color: var(--text-muted); }
+    #question {
+      flex: 1;
+      background: none;
+      border: none;
+      outline: none;
+      color: var(--text);
+      font-family: 'Inter', sans-serif;
+      font-size: 0.92rem;
+      line-height: 1.5;
+      resize: none;
+      max-height: 160px;
+      padding: 0;
+    }
+    #question::placeholder { color: var(--text-muted); }
+    #send-btn {
+      width: 34px; height: 34px;
+      background: var(--text);
+      color: var(--bg);
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      display: grid;
+      place-items: center;
+      flex-shrink: 0;
+      transition: opacity 0.15s;
+    }
+    #send-btn:hover { opacity: 0.85; }
+    #send-btn:disabled { opacity: 0.25; cursor: not-allowed; }
+    #send-btn svg { width: 16px; height: 16px; }
+
+    /* ── Upload modal ── */
+    #modal-overlay {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.6);
+      z-index: 100;
+      align-items: center;
+      justify-content: center;
+    }
+    #modal-overlay.open { display: flex; }
+    #modal {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 1.75rem;
+      width: 100%;
+      max-width: 440px;
+      margin: 1rem;
+    }
+    #modal h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.4rem; }
+    #modal .warning {
+      font-size: 0.78rem;
+      color: var(--yellow);
+      background: rgba(240,180,41,0.08);
+      border: 1px solid rgba(240,180,41,0.25);
+      border-radius: 6px;
+      padding: 0.55rem 0.75rem;
+      margin: 0.85rem 0;
+      line-height: 1.5;
+    }
+    #modal .drop-area {
+      border: 2px dashed var(--border);
+      border-radius: 8px;
+      padding: 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      transition: border-color 0.15s;
+      margin-bottom: 1rem;
+    }
+    #modal .drop-area:hover, #modal .drop-area.drag-over { border-color: var(--text-muted); color: var(--text); }
+    #modal .drop-area strong { display: block; color: var(--text); margin-bottom: 0.2rem; }
+    #file-input { display: none; }
+    #selected-file {
+      font-size: 0.8rem;
+      color: var(--accent);
+      margin-bottom: 0.75rem;
+      display: none;
+    }
+    .modal-buttons { display: flex; gap: 0.5rem; justify-content: flex-end; }
+    .modal-buttons button {
+      font-family: 'Inter', sans-serif;
+      font-size: 0.85rem;
+      font-weight: 500;
+      padding: 0.5rem 1rem;
+      border-radius: 8px;
+      cursor: pointer;
+      border: 1px solid var(--border);
+    }
+    #modal-cancel { background: none; color: var(--text-muted); }
+    #modal-cancel:hover { color: var(--text); }
+    #modal-submit {
+      background: var(--text);
+      color: var(--bg);
+      border-color: transparent;
+    }
+    #modal-submit:disabled { opacity: 0.35; cursor: not-allowed; }
+
+    /* ── Ingestion progress (inside modal) ── */
+    #ingest-progress { display: none; }
+    #ingest-progress p { font-size: 0.85rem; color: var(--text-muted); margin-bottom: 0.6rem; }
+    .progress-bar-bg {
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+    .progress-bar-fill {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      transition: width 0.4s;
+      width: 0%;
+    }
+  </style>
+</head>
+<body>
+<div id="app">
+
+  <!-- Header -->
+  <header>
+    <div class="header-left">
+      <h1>US History Q&amp;A</h1>
+      <span>RAG · GPT-4o-mini</span>
+    </div>
+    <button id="upload-btn" onclick="openModal()">Upload PDF</button>
+  </header>
+
+  <!-- Chat -->
+  <div id="chat">
+    <div id="empty">
+      <h2>Ask anything</h2>
+      <p>Answers come from the textbook with exact chapter, section, and page citations.</p>
+      <div class="suggestions">
+        <button onclick="suggest(this)">What caused the Civil War?</button>
+        <button onclick="suggest(this)">How did the New Deal respond to the Great Depression?</button>
+        <button onclick="suggest(this)">What happened at the Constitutional Convention?</button>
+        <button onclick="suggest(this)">Who were the key figures of the Progressive Era?</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Input -->
+  <div id="input-wrap">
+    <div class="input-box">
+      <textarea id="question" rows="1" placeholder="Ask a question…"></textarea>
+      <button id="send-btn" onclick="send()" disabled>
+        <svg viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 13V3M8 3L3 8M8 3l5 5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Upload modal -->
+<div id="modal-overlay">
+  <div id="modal">
+    <h2>Upload a PDF</h2>
+    <div class="warning">
+      ⚠ This tool is optimized for the bundled US History textbook. Uploading a different book will work, but chapter and section citations may be inaccurate.
+    </div>
+
+    <div id="upload-form">
+      <div class="drop-area" id="drop-area" onclick="document.getElementById('file-input').click()"
+           ondragover="event.preventDefault(); this.classList.add('drag-over')"
+           ondragleave="this.classList.remove('drag-over')"
+           ondrop="handleDrop(event)">
+        <strong>Click to choose a PDF</strong>
+        or drag and drop here
+      </div>
+      <input type="file" id="file-input" accept=".pdf" onchange="onFileSelect(event)" />
+      <div id="selected-file"></div>
+      <div class="modal-buttons">
+        <button id="modal-cancel" onclick="closeModal()">Cancel</button>
+        <button id="modal-submit" disabled onclick="submitUpload()">Upload &amp; Ingest</button>
+      </div>
+    </div>
+
+    <div id="ingest-progress">
+      <p id="ingest-msg">Starting…</p>
+      <div class="progress-bar-bg">
+        <div class="progress-bar-fill" id="progress-fill"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  const chatEl    = document.getElementById('chat');
+  const emptyEl   = document.getElementById('empty');
+  const questionEl = document.getElementById('question');
+  const sendBtn   = document.getElementById('send-btn');
+  const overlay   = document.getElementById('modal-overlay');
+
+  let selectedFile = null;
+  let pollTimer    = null;
+
+  // ── Auto-resize textarea ──
+  questionEl.addEventListener('input', () => {
+    sendBtn.disabled = !questionEl.value.trim();
+    questionEl.style.height = 'auto';
+    questionEl.style.height = Math.min(questionEl.scrollHeight, 160) + 'px';
+  });
+  questionEl.addEventListener('keydown', e => {
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); }
+  });
+
+  function suggest(btn) {
+    questionEl.value = btn.textContent;
+    questionEl.dispatchEvent(new Event('input'));
+    send();
+  }
+
+  // ── Chat helpers ──
+  function hideEmpty() { emptyEl.style.display = 'none'; }
+
+  function addUserMessage(text) {
+    hideEmpty();
+    const div = document.createElement('div');
+    div.className = 'msg user';
+    div.innerHTML = `<div class="bubble">${escHtml(text)}</div>`;
+    chatEl.appendChild(div);
+    scrollBottom();
+    return div;
+  }
+
+  function addThinking() {
+    hideEmpty();
+    const div = document.createElement('div');
+    div.className = 'msg assistant';
+    div.innerHTML = `<div class="bubble"><div class="thinking"><span></span><span></span><span></span></div></div>`;
+    chatEl.appendChild(div);
+    scrollBottom();
+    return div;
+  }
+
+  function replaceWithAnswer(thinkingDiv, data) {
+    const confidenceLabels = { high: 'High confidence', low: 'Low confidence', very_low: 'Very low confidence', none: 'No results' };
+    const answerHtml = formatAnswer(data.answer);
+    const badge = `<div class="badge ${data.confidence}">${confidenceLabels[data.confidence] ?? data.confidence}</div>`;
+
+    let sourcesHtml = '';
+    if (data.sources && data.sources.length) {
+      const items = data.sources.map((s, i) =>
+        `<li><span class="src-n">[${i+1}]</span><span>${escHtml(s)}</span></li>`
+      ).join('');
+      sourcesHtml = `
+        <button class="sources-toggle" onclick="toggleSources(this)">
+          <span class="arrow">▶</span> ${data.sources.length} source${data.sources.length > 1 ? 's' : ''}
+        </button>
+        <ul class="sources-list">${items}</ul>`;
+    }
+
+    thinkingDiv.querySelector('.bubble').innerHTML =
+      `<div class="answer-text">${answerHtml}</div>${badge}${sourcesHtml}`;
+    scrollBottom();
+  }
+
+  function addSystemMessage(text) {
+    hideEmpty();
+    const div = document.createElement('div');
+    div.className = 'msg assistant';
+    div.innerHTML = `<div class="bubble"><div class="answer-text" style="color:var(--text-muted);font-size:0.85rem">${escHtml(text)}</div></div>`;
+    chatEl.appendChild(div);
+    scrollBottom();
+  }
+
+  function toggleSources(btn) {
+    btn.classList.toggle('open');
+    btn.nextElementSibling.classList.toggle('open');
+  }
+
+  function formatAnswer(text) {
+    return escHtml(text)
+      .replace(/\[SOURCE (\d+)\]/g, '<sup class="cite">[S$1]</sup>')
+      .replace(/\n/g, '<br>');
+  }
+
+  function escHtml(s) {
+    return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  }
+
+  function scrollBottom() {
+    chatEl.scrollTop = chatEl.scrollHeight;
+  }
+
+  // ── Send ──
+  async function send() {
+    const q = questionEl.value.trim();
+    if (!q) return;
+    questionEl.value = '';
+    questionEl.style.height = 'auto';
+    sendBtn.disabled = true;
+
+    addUserMessage(q);
+    const thinking = addThinking();
+
+    try {
+      const res = await fetch('/api/query', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ question: q }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.detail || 'Server error');
+      replaceWithAnswer(thinking, data);
+    } catch (e) {
+      thinking.querySelector('.bubble').innerHTML =
+        `<div class="answer-text" style="color:var(--red)">${escHtml(e.message)}</div>`;
+    }
+  }
+
+  // ── Modal ──
+  function openModal() { overlay.classList.add('open'); }
+  function closeModal() {
+    overlay.classList.remove('open');
+    resetModal();
+  }
+  function resetModal() {
+    selectedFile = null;
+    document.getElementById('file-input').value = '';
+    document.getElementById('selected-file').style.display = 'none';
+    document.getElementById('selected-file').textContent = '';
+    document.getElementById('modal-submit').disabled = true;
+    document.getElementById('upload-form').style.display = '';
+    document.getElementById('ingest-progress').style.display = 'none';
+  }
+
+  overlay.addEventListener('click', e => { if (e.target === overlay) closeModal(); });
+
+  function onFileSelect(e) {
+    const file = e.target.files[0];
+    if (!file) return;
+    selectedFile = file;
+    const el = document.getElementById('selected-file');
+    el.textContent = `Selected: ${file.name}`;
+    el.style.display = 'block';
+    document.getElementById('modal-submit').disabled = false;
+  }
+
+  function handleDrop(e) {
+    e.preventDefault();
+    document.getElementById('drop-area').classList.remove('drag-over');
+    const file = e.dataTransfer.files[0];
+    if (!file || !file.name.toLowerCase().endsWith('.pdf')) return;
+    selectedFile = file;
+    const el = document.getElementById('selected-file');
+    el.textContent = `Selected: ${file.name}`;
+    el.style.display = 'block';
+    document.getElementById('modal-submit').disabled = false;
+  }
+
+  async function submitUpload() {
+    if (!selectedFile) return;
+
+    document.getElementById('upload-form').style.display = 'none';
+    document.getElementById('ingest-progress').style.display = 'block';
+    document.getElementById('ingest-msg').textContent = 'Uploading…';
+    document.getElementById('progress-fill').style.width = '0%';
+
+    const fd = new FormData();
+    fd.append('file', selectedFile);
+
+    try {
+      const res = await fetch('/api/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (!res.ok) {
+        showIngestError(data.detail || 'Upload failed.');
+        return;
+      }
+      pollIngestion();
+    } catch (e) {
+      showIngestError(e.message);
+    }
+  }
+
+  function pollIngestion() {
+    clearInterval(pollTimer);
+    pollTimer = setInterval(async () => {
+      try {
+        const res = await fetch('/api/status');
+        const s = await res.json();
+        document.getElementById('ingest-msg').textContent = s.message || '…';
+        document.getElementById('progress-fill').style.width = (s.progress || 0) + '%';
+
+        if (s.state === 'ready') {
+          clearInterval(pollTimer);
+          document.getElementById('ingest-msg').textContent = '✓ Ready!';
+          document.getElementById('progress-fill').style.width = '100%';
+          setTimeout(() => {
+            closeModal();
+            // Clear chat history for fresh start
+            chatEl.innerHTML = '';
+            chatEl.appendChild(emptyEl);
+            emptyEl.style.display = '';
+            addSystemMessage('New document loaded. Conversation reset.');
+          }, 1200);
+        } else if (s.state === 'error') {
+          clearInterval(pollTimer);
+          showIngestError(s.error || 'Ingestion failed.');
+        }
+      } catch (_) {}
+    }, 2000);
+  }
+
+  function showIngestError(msg) {
+    document.getElementById('ingest-progress').style.display = 'none';
+    document.getElementById('upload-form').style.display = '';
+    selectedFile = null;
+    document.getElementById('file-input').value = '';
+    document.getElementById('selected-file').style.display = 'none';
+    document.getElementById('modal-submit').disabled = true;
+    // Show error above form
+    let errEl = document.getElementById('ingest-error');
+    if (!errEl) {
+      errEl = document.createElement('div');
+      errEl.id = 'ingest-error';
+      errEl.style.cssText = 'font-size:.82rem;color:var(--red);background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.25);border-radius:6px;padding:.55rem .75rem;margin-bottom:.75rem;line-height:1.5';
+      document.getElementById('upload-form').prepend(errEl);
+    }
+    errEl.textContent = msg;
+  }
+</script>
+</body>
+</html>

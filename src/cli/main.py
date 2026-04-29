@@ -1,6 +1,7 @@
 import argparse
 import os
 import re
+import shutil
 import sys
 from pathlib import Path
 
@@ -8,6 +9,7 @@ import openai
 
 from config.settings import (
     BM25_INDEX_PATH,
+    CHROMA_DB_PATH,
     CHUNKS_PATH,
     CHUNKING_VERSION,
     INGESTION_STATE_PATH,
@@ -57,6 +59,9 @@ def _run_ingest(args: argparse.Namespace) -> None:
         if BM25_INDEX_PATH.exists():
             BM25_INDEX_PATH.unlink()
             print("Deleted bm25_index.pkl.")
+        if CHROMA_DB_PATH.exists():
+            shutil.rmtree(CHROMA_DB_PATH)
+            print("Deleted Chroma database.")
 
     print("Computing PDF hash...")
     pdf_hash = compute_pdf_hash(pdf_path)
