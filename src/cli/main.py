@@ -130,11 +130,40 @@ def _run_ingest(args: argparse.Namespace) -> None:
 _REFUSAL_PREFIX = "The provided sources do not contain sufficient information"
 
 
+def _clean_for_history(text: str) -> str:
+    """Strip confidence prefixes, sources block, and [SOURCE N] tags for history storage."""
+    for prefix in ("Very low confidence:", "Low confidence:", "Warning:"):
+        if text.startswith(prefix):
+            text = text.split("\n\n", 1)[1] if "\n\n" in text else text
+    if "Sources Used:" in text:
+        text = text.split("Sources Used:")[0]
+    return re.sub(r"\[SOURCE \d+\]", "", text).strip()
+
+
+def _respond_to_instruction(
+    message: str,
+    history: list[dict],
+    openai_client,
+) -> str:
+    from config.settings import GENERATION_MODEL
+    messages = [{"role": "system", "content": _SYSTEM_PROMPT}]
+    messages.extend(history)
+    messages.append({"role": "user", "content": message})
+    response = openai_client.chat.completions.create(
+        model=GENERATION_MODEL,
+        messages=messages,
+        temperature=0,
+        max_tokens=80,
+    )
+    return response.choices[0].message.content.strip()
+
+
 def _process_query(
     question: str,
     chroma_manager,
     bm25_manager,
     openai_client,
+    history: list[dict] | None = None,
 ) -> str:
     fused_results = hybrid_retrieve(question, chroma_manager, bm25_manager, openai_client)
 
@@ -144,7 +173,7 @@ def _process_query(
     context_block, citation_map = assemble_context(fused_results)
     num_sources = len(fused_results)
 
-    messages = build_messages(context_block, question, num_sources)
+    messages = build_messages(context_block, question, num_sources, history)
     raw_answer = generate_answer(messages, openai_client)
 
     if raw_answer.startswith(_REFUSAL_PREFIX):
@@ -154,7 +183,7 @@ def _process_query(
         if second_results:
             context_block2, citation_map2 = assemble_context(second_results)
             num_sources2 = len(second_results)
-            messages2 = build_messages(context_block2, rewritten, num_sources2)
+            messages2 = build_messages(context_block2, rewritten, num_sources2, history)
             raw_answer2 = generate_answer(messages2, openai_client)
 
             if raw_answer2.startswith(_REFUSAL_PREFIX):
@@ -236,6 +265,9 @@ def _run_query(args: argparse.Namespace) -> None:
 
     print("Ready. Type 'quit' or 'exit' to stop.\n")
 
+    history: list[dict] = []
+    MAX_HISTORY_TURNS = 10
+
     while True:
         try:
             question = input("Query: ").strip()
@@ -250,8 +282,22 @@ def _run_query(args: argparse.Namespace) -> None:
         if question.lower() in ("quit", "exit"):
             break
 
-        result = _process_query(question, chroma_manager, bm25_manager, openai_client)
-        print(f"\n{result}\n")
+        # Short messages with no `?` are instructions/context — respond conversationally
+        is_instruction = len(question.split()) <= 6 and "?" not in question
+        if is_instruction:
+            reply = _respond_to_instruction(question, history, openai_client)
+            print(f"\n{reply}\n")
+            history.append({"role": "user", "content": question})
+            history.append({"role": "assistant", "content": reply})
+        else:
+            result = _process_query(question, chroma_manager, bm25_manager, openai_client, history)
+            print(f"\n{result}\n")
+            history.append({"role": "user", "content": question})
+            history.append({"role": "assistant", "content": _clean_for_history(result)})
+
+        # Keep only the last MAX_HISTORY_TURNS turns
+        if len(history) > MAX_HISTORY_TURNS * 2:
+            history = history[-(MAX_HISTORY_TURNS * 2):]
 
 
 # ---------------------------------------------------------------------------

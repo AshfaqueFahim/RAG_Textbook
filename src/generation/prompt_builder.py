@@ -33,6 +33,9 @@ will be added automatically. Do NOT invent source numbers beyond those provided.
 """
 
 _USER_TEMPLATE = """\
+The conversation history above is for context only — do not cite from it. \
+All citations must reference only the SOURCE PASSAGES provided below.
+
 SOURCE PASSAGES:
 ----------------
 {context_block}
@@ -51,13 +54,19 @@ follow the refusal format.\
 """
 
 
-def build_messages(context_block: str, question: str, num_sources: int) -> list[dict]:
+def build_messages(
+    context_block: str,
+    question: str,
+    num_sources: int,
+    history: list[dict] | None = None,
+) -> list[dict]:
     user_content = _USER_TEMPLATE.format(
         context_block=context_block,
         user_question=question,
         num_sources=num_sources,
     )
-    return [
-        {"role": "system", "content": _SYSTEM_PROMPT},
-        {"role": "user", "content": user_content},
-    ]
+    messages = [{"role": "system", "content": _SYSTEM_PROMPT}]
+    if history:
+        messages.extend(history)
+    messages.append({"role": "user", "content": user_content})
+    return messages
