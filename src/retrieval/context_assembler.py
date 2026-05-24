@@ -18,12 +18,13 @@ def assemble_context(fused_results: list[dict]) -> tuple[str, dict]:
     citation_map = {}
 
     for source_num, chunk in enumerate(sorted_results, start=1):
-        label = (
-            f"[SOURCE {source_num} | "
-            f"Chapter {chunk['chapter_num']}: {chunk['chapter_title']} | "
-            f"Section: {chunk['section_header']} | "
-            f"Page {chunk['page_num']}]"
-        )
+        parts = [f"SOURCE {source_num}"]
+        if chunk.get("chapter_title"):
+            parts.append(f"Chapter {chunk['chapter_num']}: {chunk['chapter_title']}")
+        if chunk.get("section_header"):
+            parts.append(f"Section: {chunk['section_header']}")
+        parts.append(f"Page {chunk['page_num']}")
+        label = "[" + " | ".join(parts) + "]"
         source_blocks.append(f"{label}\n{chunk['text']}")
         citation_map[source_num] = {
             "chunk_text": chunk["text"],
@@ -57,10 +58,13 @@ def resolve_citations(
     lines = []
     for n in valid:
         entry = citation_map[n]
-        lines.append(
-            f"[SOURCE {n}] Chapter {entry['chapter_num']}: {entry['chapter_title']} | "
-            f"Section: {entry['section_header']} | Page {entry['page_num']}"
-        )
+        parts = []
+        if entry.get("chapter_title"):
+            parts.append(f"Chapter {entry['chapter_num']}: {entry['chapter_title']}")
+        if entry.get("section_header"):
+            parts.append(f"Section: {entry['section_header']}")
+        parts.append(f"Page {entry['page_num']}")
+        lines.append(f"[SOURCE {n}] " + " | ".join(parts))
     sources_used_block = "Sources Used:\n" + "\n".join(lines)
 
     return answer_text, sources_used_block, invalid
